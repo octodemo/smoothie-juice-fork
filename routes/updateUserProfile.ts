@@ -11,6 +11,18 @@ const utils = require('../lib/utils')
 const cache = require('../data/datacache')
 const challenges = cache.challenges
 
+const isHtmleditUrl = (value: string | undefined) => {
+  if (!value) {
+    return false
+  }
+
+  try {
+    return new URL(value).hostname === 'htmledit.squarefree.com'
+  } catch {
+    return false
+  }
+}
+
 module.exports = function updateUserProfile () {
   return (req: Request, res: Response, next: NextFunction) => {
     const loggedInUser = security.authenticatedUsers.get(req.cookies.token)
@@ -19,8 +31,8 @@ module.exports = function updateUserProfile () {
       UserModel.findByPk(loggedInUser.data.id).then((user: UserModel | null) => {
         if (user) {
           utils.solveIf(challenges.csrfChallenge, () => {
-            return ((req.headers.origin?.includes('://htmledit.squarefree.com')) ??
-              (req.headers.referer?.includes('://htmledit.squarefree.com'))) &&
+            return (isHtmleditUrl(req.headers.origin) ||
+              isHtmleditUrl(req.headers.referer)) &&
               req.body.username !== user.username
           })
           void user.update({ username: req.body.username }).then((savedUser: UserModel) => {
@@ -40,3 +52,5 @@ module.exports = function updateUserProfile () {
     }
   }
 }
+
+module.exports.isHtmleditUrl = isHtmleditUrl
