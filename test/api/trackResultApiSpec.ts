@@ -15,7 +15,7 @@ describe('/rest/track-order/:id', () => {
       .expect('json', {})
   })
 
-  it('GET all orders by injecting into orderId', () => {
+  it('does not allow injecting into orderId', () => {
     const product = Joi.object().keys({
       quantity: Joi.number(),
       name: Joi.string(),
@@ -25,13 +25,17 @@ describe('/rest/track-order/:id', () => {
     return frisby.get(REST_URL + '/track-order/%27%20%7C%7C%20true%20%7C%7C%20%27')
       .expect('status', 200)
       .expect('header', 'content-type', /application\/json/)
-      .expect('jsonTypes', 'data.*', {
+      .expect('jsonTypes', 'data.0', {
         orderId: Joi.string(),
         email: Joi.string(),
         totalPrice: Joi.number(),
         products: Joi.array().items(product),
         eta: Joi.string(),
         _id: Joi.string()
+      })
+      .then(({ json }) => {
+        expect(json.data.length).toBe(1)
+        expect(json.data[0].orderId).toBe("' || true || '")
       })
   })
 })
